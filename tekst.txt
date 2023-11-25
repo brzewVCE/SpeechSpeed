@@ -1,1 +1,0 @@
-moze niech ma instance, slucha 3 sek i spawnuje kolejny
