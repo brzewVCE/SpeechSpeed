@@ -3,6 +3,8 @@ import time
 from colorama import Fore, Style
 import multiprocessing
 import argparse
+import sys
+
 mp_context = multiprocessing.get_context('spawn')
 r = sr.Recognizer()
 r.energy_threshold = 0
@@ -16,16 +18,19 @@ def print_col(text, color):
     else:
         print(text)
 
+def print_wpm(words):
+    wpm = len(words) / 3 * 60
+    sys.stdout.write("\rWords per minute: {0}".format(wpm))
+    sys.stdout.flush()
+
 def process_speech(process_num, output_mode=False):
-    if output_mode:
-        print_col(f"Started process_speech() function number {process_num}", "red")
+    # if output_mode:
+    print_col(f"Started process_speech() function number {process_num}", "red")
     time.sleep(3)
     words = {}
     with sr.Microphone() as source:
         try:
-            #Jakoś mądrzej te 3 sekundy zrobić
-            #Czasem dwa razy ten sam tekst (?)
-            #Niech dodaje nowe słoa, i resetuje się po ciszy
+            #Nagryawnie jest 2 procesy przed procesem rozpoznawania mowy
             process = mp_context.Process(target=process_speech, args=(process_num+1,output_mode,))
             process.start()
             audio_text = r.listen(source, phrase_time_limit=3)
@@ -37,12 +42,14 @@ def process_speech(process_num, output_mode=False):
                 pass
         except sr.WaitTimeoutError:
             pass
+        except KeyboardInterrupt:
+            process.terminate()
+            return print_col(f"Interrupted process_speech() function number {process_num}", "red")
         except Exception as e:
             print(Fore.RED + "An error occurred: {0}".format(e) + Style.RESET_ALL)
-    if len(words) != 0 and output_mode:
-        print_col(f"Process {process_num} recognized: {words}", "green")
-        print(len(words))
-    return print_col(f"Słowa na minutę: {len(words)/3*60}", "green")
+    # if len(words) != 0 and output_mode:
+    print_col(f"Process {process_num} recognized: {words}", "green")
+    print_col(f"Words per minute: {len(words) / 3 * 60}", "green")
     
 
 
