@@ -23,17 +23,19 @@ def print_wpm(words):
     sys.stdout.write("\rWords per minute: {0}".format(wpm))
     sys.stdout.flush()
 
-def process_speech(process_num, output_mode=False):
+
+#opóźnienie w sekundach procesów
+def process_speech(process_num, output_mode=False, rec_time=4):
     # if output_mode:
+    time.sleep(rec_time-1)
     print_col(f"Started process_speech() function number {process_num}", "red")
-    time.sleep(3)
     words = {}
     with sr.Microphone() as source:
         try:
             #Nagryawnie jest 2 procesy przed procesem rozpoznawania mowy
             process = mp_context.Process(target=process_speech, args=(process_num+1,output_mode,))
             process.start()
-            audio_text = r.listen(source, phrase_time_limit=3)
+            audio_text = r.listen(source, phrase_time_limit=rec_time)
             words = r.recognize_google(audio_text, language='pl-PL').split()
         except sr.UnknownValueError:
             try:
@@ -49,7 +51,7 @@ def process_speech(process_num, output_mode=False):
             print(Fore.RED + "An error occurred: {0}".format(e) + Style.RESET_ALL)
     # if len(words) != 0 and output_mode:
     print_col(f"Process {process_num} recognized: {words}", "green")
-    print_col(f"Words per minute: {len(words) / 3 * 60}", "green")
+    print_col(f"Words per minute: {len(words) / rec_time * 60}", "green")
     
 
 
@@ -62,4 +64,5 @@ if __name__ == '__main__':
     parser.add_argument('--output', action='store_true', help='Enable output mode')
     args = parser.parse_args()
 
-    process_speech(0,args.output)
+    process = mp_context.Process(target=process_speech, args=(0,args.output,1,))
+    process.start()
