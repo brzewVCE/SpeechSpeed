@@ -4,12 +4,22 @@ from colorama import Fore, Style
 import multiprocessing
 import argparse
 import sys
+import customtkinter as ctk
 
 mp_context = multiprocessing.get_context('spawn')
 r = sr.Recognizer()
 r.energy_threshold = 0
 r.dynamic_energy_threshold = False
 
+ctk.set_appearance_mode("system")
+ctk.set_default_color_theme("light")
+
+root = ctk.Tk()
+root.geometry("500x350")
+
+rec_time=4
+offset=2
+previous_sentence = []
 
 def print_col(text, color):
     color_constant = getattr(Fore, color.upper(), None)
@@ -23,16 +33,13 @@ def print_wpm(words):
     sys.stdout.write("\rWords per minute: {0}".format(wpm))
     sys.stdout.flush()
 
-
-#opóźnienie w sekundach procesów
-def process_speech(process_num, output_mode=False, rec_time=4):
-    # if output_mode:
-    time.sleep(rec_time-1)
+#zdesignować GUI
+def process_speech(process_num, output_mode=False, rec_time=rec_time, offset=offset, previous_sentence=previous_sentence):
+    time.sleep(rec_time-offset)
     print_col(f"Started process_speech() function number {process_num}", "red")
     words = {}
     with sr.Microphone() as source:
         try:
-            #Nagryawnie jest 2 procesy przed procesem rozpoznawania mowy
             process = mp_context.Process(target=process_speech, args=(process_num+1,output_mode,))
             process.start()
             audio_text = r.listen(source, phrase_time_limit=rec_time)
@@ -46,12 +53,23 @@ def process_speech(process_num, output_mode=False, rec_time=4):
             pass
         except KeyboardInterrupt:
             process.terminate()
-            return print_col(f"Interrupted process_speech() function number {process_num}", "red")
+            process.join()
         except Exception as e:
             print(Fore.RED + "An error occurred: {0}".format(e) + Style.RESET_ALL)
     # if len(words) != 0 and output_mode:
+    #for testing purposes
+    words = [word.lower() for word in words]
+    #compare if last two words is the same as first word in new sentence
+    
+    if len(previous_sentence) != 0:
+        while previous_sentence[-1] == words[0] or previous_sentence[-2] == words[0]:
+            words = words[1:]
+    
+    previous_sentence = words
     print_col(f"Process {process_num} recognized: {words}", "green")
     print_col(f"Words per minute: {len(words) / rec_time * 60}", "green")
+    return previous_sentence
+    
     
 
 
@@ -64,5 +82,5 @@ if __name__ == '__main__':
     parser.add_argument('--output', action='store_true', help='Enable output mode')
     args = parser.parse_args()
 
-    process = mp_context.Process(target=process_speech, args=(0,args.output,1,))
+    process = mp_context.Process(target=process_speech, args=(0,args.output,rec_time,rec_time))
     process.start()

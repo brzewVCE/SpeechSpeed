@@ -2,3 +2,4 @@ pocketsphinx == 5.0.2
 pyaudio == 0.2.14
 SpeechRecognition == 3.10.0
 keyboard == 0.13.5
+customtkinter == 5.2.1
