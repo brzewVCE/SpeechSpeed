@@ -42,14 +42,13 @@ def process_speech(process_num, prev_sentences, last_WPM, rec_time=rec_time, off
     time.sleep(rec_time-offset)
     print_col(f"Started process_speech() function number {process_num}", "yellow")
     buffer = prev_sentences.buf
-    if buffer[0] == 0:
-        buffer[0] = process_num
+    buffer[0] = 100
     print_col(f"bytes: {buffer[0]}", "red")
     print_col(f"Memory name: {prev_sentences.name}", "red")
     words = {}
     with sr.Microphone() as source:
         try:
-            process = mp_context.Process(target=process_speech, args=(process_num+1, prev_sentences,))
+            process = mp_context.Process(target=process_speech, args=(process_num+1, prev_sentences,last_WPM,))
             process.start()
             audio_text = r.listen(source, phrase_time_limit=rec_time)
             words = r.recognize_google(audio_text, language='pl-PL').split()
