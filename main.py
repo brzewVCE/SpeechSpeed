@@ -50,7 +50,7 @@ def process_speech(process_num, rec_time=rec_time, offset=offset):
     words = {}
     with sr.Microphone() as source:
         try:
-            process = mp_context.Process(target=process_speech, args=(process_num+1, prev_sentences,last_WPM,))
+            process = mp_context.Process(target=process_speech, args=(process_num+1,))
             process.start()
             audio_text = r.listen(source, phrase_time_limit=rec_time)
             words = r.recognize_google(audio_text, language='pl-PL').split()
@@ -89,7 +89,7 @@ def process_speech(process_num, rec_time=rec_time, offset=offset):
     previous_sentence = words
     print_col(f"corrected words: {words}", "red")
     WPM = int(len(words) / rec_time * 60)
-    bLast_WPM[0] = bytes(WPM)
+    bLast_WPM[0] = WPM
     print_col(f"Process {process_num} recognized: {words}", "green")
     print_col(f"Words per minute: {WPM}", "green")
     prev_sentences.unlink()
