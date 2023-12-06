@@ -38,12 +38,14 @@ def print_col(text, color):
 
 
 #naprawić globalne zmienne
-def process_speech(process_num, prev_sentences, last_WPM, rec_time=rec_time, offset=offset):
+def process_speech(process_num, rec_time=rec_time, offset=offset):
     time.sleep(rec_time-offset)
     print_col(f"Started process_speech() function number {process_num}", "yellow")
-    buffer = prev_sentences.buf
-    buffer[0] = 100
-    print_col(f"bytes: {buffer[0]}", "red")
+    prev_sentences = shared_memory.SharedMemory(name="prev_sentences")
+    bPrev_sentences = prev_sentences.buf
+    last_WPM = shared_memory.SharedMemory(name="last_WPM")
+    bLast_WPM = last_WPM.buf
+    print_col(f"bytes: {bLast_WPM[0]}", "red")
     print_col(f"Memory name: {prev_sentences.name}", "red")
     words = {}
     with sr.Microphone() as source:
@@ -86,10 +88,12 @@ def process_speech(process_num, prev_sentences, last_WPM, rec_time=rec_time, off
     #                 break
     previous_sentence = words
     print_col(f"corrected words: {words}", "red")
-    WPM = len(words) / rec_time * 60
+    WPM = int(len(words) / rec_time * 60)
+    bLast_WPM[0] = bytes(WPM)
     print_col(f"Process {process_num} recognized: {words}", "green")
     print_col(f"Words per minute: {WPM}", "green")
     prev_sentences.unlink()
+    last_WPM.unlink()
 
     
     
@@ -112,7 +116,7 @@ if __name__ == '__main__':
 
 
 
-    process = mp_context.Process(target=process_speech, args=(0, prev_sentences,last_WPM,))
+    process = mp_context.Process(target=process_speech, args=(0,rec_time,rec_time,))
     process.start()
 
     
