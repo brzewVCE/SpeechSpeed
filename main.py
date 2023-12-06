@@ -38,17 +38,18 @@ def print_col(text, color):
 
 
 #naprawić globalne zmienne
-def process_speech(process_num, shared_data, rec_time=rec_time, offset=offset):
+def process_speech(process_num, prev_sentences, last_WPM, rec_time=rec_time, offset=offset):
     time.sleep(rec_time-offset)
     print_col(f"Started process_speech() function number {process_num}", "yellow")
-    buffer = shared_data.buf
+    buffer = prev_sentences.buf
     if buffer[0] == 0:
         buffer[0] = process_num
-    print_col(f"buffer: {buffer}", "yellow")
+    print_col(f"bytes: {buffer[0]}", "red")
+    print_col(f"Memory name: {prev_sentences.name}", "red")
     words = {}
     with sr.Microphone() as source:
         try:
-            process = mp_context.Process(target=process_speech, args=(process_num+1, shared_data,))
+            process = mp_context.Process(target=process_speech, args=(process_num+1, prev_sentences,))
             process.start()
             audio_text = r.listen(source, phrase_time_limit=rec_time)
             words = r.recognize_google(audio_text, language='pl-PL').split()
@@ -69,27 +70,27 @@ def process_speech(process_num, shared_data, rec_time=rec_time, offset=offset):
     #print words
     
     print_col(f"words: {words}", "red")
-    print_col(f"previous_sentence: {previous_sentence}", "red")
+    
     #compare if last two words is the same as first word in new sentence
     
-    if len(previous_sentence) != 0:
-        #scan the last two words of previous sentences for all sentences
-        for sentence in previous_sentence:
-            if len(sentence) >= 2:
-                if sentence[-2:] == words[0]:
-                    words = words[2:]
-                    print_col(f"words: {words}", "red")
-                    break
-                if sentence[-1] == words[0]:
-                    words = words[1:]
-                    print_col(f"words: {words}", "red")
-                    break
+    # if len(previous_sentence) != 0:
+    #     #scan the last two words of previous sentences for all sentences
+    #     for sentence in previous_sentence:
+    #         if len(sentence) >= 2:
+    #             if sentence[-2:] == words[0]:
+    #                 words = words[2:]
+    #                 print_col(f"words: {words}", "red")
+    #                 break
+    #             if sentence[-1] == words[0]:
+    #                 words = words[1:]
+    #                 print_col(f"words: {words}", "red")
+    #                 break
     previous_sentence = words
     print_col(f"corrected words: {words}", "red")
     WPM = len(words) / rec_time * 60
     print_col(f"Process {process_num} recognized: {words}", "green")
     print_col(f"Words per minute: {WPM}", "green")
-    shared_data.unlink()
+    prev_sentences.unlink()
 
     
     
@@ -103,13 +104,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     #shared memory, last 3 sentences and last WPM
-    sentences = shared_memory.SharedMemory(create=True, size=3)
-    buffer = sentences.buf
+    prev_sentences = shared_memory.SharedMemory(name="prev_sentences",create=True, size=3)
+    last_WPM = shared_memory.SharedMemory(name="last_WPM",create=True, size=1)
+    buffer = prev_sentences.buf
     buffer[0] = 0
+    print_col(f"shared memory name: {prev_sentences.name}", "blue")
+    print_col(f"shared memory name: {last_WPM.name}", "blue")
 
 
 
-    process = mp_context.Process(target=process_speech, args=(0, sentences,))
+    process = mp_context.Process(target=process_speech, args=(0, prev_sentences,last_WPM,))
     process.start()
 
     
